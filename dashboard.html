@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SurveyPay – Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --green:#00c853;--green-dark:#00a846;--glow:rgba(0,200,83,0.15);
+      --dark:#0b0f0c;--surface:#0e1410;--card:#111814;
+      --border:rgba(255,255,255,0.07);--text:#e8f5e9;--muted:#7a9e85;
+      --white:#fff;--error:#ff5252;--warn:#ffab40;
+    }
+    body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+
+    nav{display:flex;align-items:center;justify-content:space-between;padding:0 4%;height:64px;background:rgba(11,15,12,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;}
+    .nav-logo{font-family:'Sora',sans-serif;font-size:1.2rem;font-weight:800;color:var(--white);text-decoration:none;}
+    .nav-logo span{color:var(--green);}
+    .nav-right{display:flex;align-items:center;gap:.8rem;}
+    .nav-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--green),#00695c);display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;color:#000;font-size:.85rem;}
+    .nav-name{font-size:.9rem;font-weight:600;color:var(--white);}
+    .logout-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.4rem .9rem;border-radius:50px;font-size:.8rem;cursor:pointer;transition:all .2s;}
+    .logout-btn:hover{border-color:var(--error);color:var(--error);}
+
+    .layout{display:flex;flex:1;}
+    .sidebar{width:210px;background:var(--surface);border-right:1px solid var(--border);padding:1.5rem 1rem;display:flex;flex-direction:column;gap:.3rem;flex-shrink:0;}
+    .sidebar a{display:flex;align-items:center;gap:.7rem;padding:.65rem .9rem;border-radius:10px;color:var(--muted);text-decoration:none;font-size:.88rem;font-weight:500;transition:all .2s;}
+    .sidebar a:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+    .sidebar a.active{background:var(--glow);color:var(--green);font-weight:700;}
+    .main{flex:1;padding:2rem 3%;overflow-y:auto;}
+
+    .loading-screen{position:fixed;inset:0;background:var(--dark);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem;z-index:200;}
+    .spinner{width:40px;height:40px;border:3px solid rgba(0,200,83,0.2);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .welcome-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:2rem;}
+    .welcome-text h2{font-family:'Sora',sans-serif;font-size:1.5rem;font-weight:800;color:var(--white);}
+    .welcome-text p{color:var(--muted);font-size:.9rem;margin-top:.2rem;}
+    .ref-badge{display:flex;align-items:center;gap:.6rem;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.5rem 1rem;font-size:.85rem;}
+    .ref-label{color:var(--muted);}
+    .ref-code{font-family:'Sora',sans-serif;font-weight:700;color:var(--green);}
+    .copy-btn{background:rgba(0,200,83,0.1);border:none;color:var(--green);padding:.3rem .7rem;border-radius:6px;font-size:.75rem;cursor:pointer;font-weight:600;}
+    .copy-btn:hover{background:rgba(0,200,83,0.2);}
+
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-bottom:2rem;}
+    .stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.3rem 1.2rem;transition:border-color .2s;}
+    .stat-card:hover{border-color:rgba(0,200,83,0.2);}
+    .stat-label{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;}
+    .stat-value{font-family:'Sora',sans-serif;font-size:1.8rem;font-weight:800;color:var(--white);}
+    .stat-value.green{color:var(--green);}
+    .stat-sub{font-size:.75rem;color:var(--muted);margin-top:.3rem;}
+
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem;}
+    .section-title{font-family:'Sora',sans-serif;font-size:1.05rem;font-weight:700;color:var(--white);margin-bottom:1rem;}
+
+    .survey-list{display:flex;flex-direction:column;gap:.8rem;}
+    .survey-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem;display:flex;align-items:center;gap:.9rem;transition:border-color .2s;}
+    .survey-item:hover{border-color:rgba(0,200,83,0.2);}
+    .survey-icon{width:40px;height:40px;border-radius:10px;background:var(--glow);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+    .survey-info{flex:1;min-width:0;}
+    .survey-name{font-weight:600;color:var(--white);font-size:.88rem;}
+    .survey-meta{font-size:.75rem;color:var(--muted);margin-top:.15rem;}
+    .survey-earn{font-family:'Sora',sans-serif;font-weight:700;color:var(--green);font-size:.9rem;white-space:nowrap;margin-right:.4rem;}
+    .take-btn{background:var(--green);color:#000;border:none;padding:.4rem .9rem;border-radius:50px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;}
+    .take-btn:hover{background:var(--green-dark);}
+    .pay-btn{background:transparent;color:var(--warn);border:1px solid var(--warn);padding:.4rem .9rem;border-radius:50px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;}
+    .pay-btn:hover{background:rgba(255,171,64,0.1);}
+    .done-badge{background:rgba(0,200,83,0.1);color:var(--green);font-size:.75rem;font-weight:700;padding:.3rem .7rem;border-radius:50px;white-space:nowrap;}
+    .free-tag{background:rgba(0,200,83,0.15);color:var(--green);font-size:.7rem;font-weight:700;padding:.15rem .5rem;border-radius:4px;margin-left:.4rem;}
+    .paid-tag{background:rgba(255,171,64,0.15);color:var(--warn);font-size:.7rem;font-weight:700;padding:.15rem .5rem;border-radius:4px;margin-left:.4rem;}
+
+    .txn-list{display:flex;flex-direction:column;gap:.6rem;}
+    .txn-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.85rem 1rem;display:flex;align-items:center;gap:.8rem;}
+    .txn-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+    .txn-dot.credit{background:var(--green);}
+    .txn-dot.debit{background:var(--warn);}
+    .txn-info{flex:1;min-width:0;}
+    .txn-desc{font-size:.85rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .txn-date{font-size:.72rem;color:var(--muted);margin-top:.1rem;}
+    .txn-amount{font-family:'Sora',sans-serif;font-weight:700;font-size:.88rem;white-space:nowrap;}
+    .txn-amount.credit{color:var(--green);}
+    .txn-amount.debit{color:var(--warn);}
+    .empty-state{color:var(--muted);font-size:.85rem;text-align:center;padding:2rem 0;}
+
+    .withdraw-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.5rem;margin-bottom:2rem;}
+    .withdraw-card input,.withdraw-card select{width:100%;padding:.75rem 1rem;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.92rem;outline:none;margin-bottom:1rem;transition:border-color .2s;}
+    .withdraw-card input:focus,.withdraw-card select:focus{border-color:rgba(0,200,83,0.4);}
+    .withdraw-card select option{background:#111814;}
+    .balance-hint{font-size:.82rem;color:var(--muted);margin-bottom:1rem;}
+    .balance-hint span{color:var(--green);font-weight:700;}
+    .withdraw-btn{width:100%;padding:.85rem;border-radius:50px;background:var(--green);color:#000;font-family:'Sora',sans-serif;font-weight:700;font-size:.95rem;border:none;cursor:pointer;transition:all .2s;}
+    .withdraw-btn:hover{background:var(--green-dark);}
+    .withdraw-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+    .ref-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.5rem;margin-bottom:2rem;}
+    .ref-link-row{display:flex;gap:.6rem;align-items:center;margin-top:1rem;}
+    .ref-link-input{flex:1;padding:.7rem 1rem;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.82rem;outline:none;}
+    .ref-stats{display:flex;gap:2rem;margin-top:1.2rem;flex-wrap:wrap;}
+    .ref-stat-val{font-family:'Sora',sans-serif;font-size:1.4rem;font-weight:800;color:var(--white);}
+    .ref-stat-val span{color:var(--green);}
+    .ref-stat-lbl{font-size:.75rem;color:var(--muted);margin-top:.2rem;}
+
+    /* MODAL */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);z-index:100;display:none;align-items:center;justify-content:center;padding:1rem;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:20px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:2rem;}
+    .modal-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;gap:1rem;}
+    .modal-title{font-family:'Sora',sans-serif;font-size:1.2rem;font-weight:800;color:var(--white);}
+    .modal-meta{font-size:.8rem;color:var(--muted);margin-top:.3rem;}
+    .close-btn{background:rgba(255,255,255,0.06);border:none;color:var(--muted);width:32px;height:32px;border-radius:50%;font-size:1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+    .close-btn:hover{background:rgba(255,82,82,0.15);color:var(--error);}
+
+    .progress-wrap{margin-bottom:1.5rem;}
+    .progress-label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:.4rem;}
+    .progress-bar-bg{background:rgba(255,255,255,0.06);border-radius:50px;height:6px;}
+    .progress-bar-fill{height:100%;border-radius:50px;background:linear-gradient(90deg,var(--green),#00e676);transition:width .4s ease;}
+
+    .question-block{margin-bottom:1.5rem;}
+    .question-num{font-size:.75rem;color:var(--green);font-weight:700;margin-bottom:.4rem;}
+    .question-text{font-size:.98rem;font-weight:600;color:var(--white);margin-bottom:1rem;line-height:1.5;}
+    .options-list{display:flex;flex-direction:column;gap:.6rem;}
+    .option-item{display:flex;align-items:center;gap:.8rem;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;cursor:pointer;transition:all .2s;}
+    .option-item:hover{border-color:rgba(0,200,83,0.3);background:rgba(0,200,83,0.05);}
+    .option-item.selected{border-color:var(--green);background:rgba(0,200,83,0.08);}
+    .option-item input[type=radio]{accent-color:var(--green);width:16px;height:16px;flex-shrink:0;pointer-events:none;}
+    .option-label{font-size:.9rem;color:var(--text);cursor:pointer;}
+    .text-answer{width:100%;padding:.8rem 1rem;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;resize:vertical;min-height:90px;transition:border-color .2s;}
+    .text-answer:focus{border-color:rgba(0,200,83,0.4);}
+    .text-answer::placeholder{color:rgba(255,255,255,0.2);}
+
+    .modal-footer{display:flex;gap:.8rem;margin-top:1.5rem;}
+    .btn-prev{flex:1;padding:.8rem;border-radius:50px;background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);font-size:.9rem;font-weight:600;cursor:pointer;}
+    .btn-next{flex:2;padding:.8rem;border-radius:50px;background:var(--green);color:#000;font-family:'Sora',sans-serif;font-size:.9rem;font-weight:700;border:none;cursor:pointer;}
+    .btn-next:hover{background:var(--green-dark);}
+    .btn-next:disabled{opacity:.5;cursor:not-allowed;}
+
+    .success-screen{text-align:center;padding:1rem 0;}
+    .success-icon{font-size:3.5rem;margin-bottom:1rem;}
+    .success-title{font-family:'Sora',sans-serif;font-size:1.4rem;font-weight:800;color:var(--white);margin-bottom:.5rem;}
+    .success-earn{font-family:'Sora',sans-serif;font-size:2.2rem;font-weight:800;color:var(--green);margin:1rem 0;}
+    .success-sub{color:var(--muted);font-size:.9rem;line-height:1.6;margin-bottom:1.5rem;}
+    .done-btn{width:100%;padding:.9rem;border-radius:50px;background:var(--green);color:#000;font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;border:none;cursor:pointer;}
+
+    /* PAYMENT MODAL */
+    .pay-modal{background:var(--card);border:1px solid var(--border);border-radius:20px;width:100%;max-width:400px;padding:2rem;text-align:center;}
+    .pay-icon{font-size:3rem;margin-bottom:1rem;}
+    .pay-title{font-family:'Sora',sans-serif;font-size:1.3rem;font-weight:800;color:var(--white);margin-bottom:.5rem;}
+    .pay-sub{color:var(--muted);font-size:.88rem;line-height:1.6;margin-bottom:1.2rem;}
+    .pay-amount{font-family:'Sora',sans-serif;font-size:2.2rem;font-weight:800;color:var(--green);margin-bottom:1.2rem;}
+    .pay-earn{font-size:.82rem;color:var(--muted);margin-top:-.8rem;margin-bottom:1.2rem;}
+    .pay-input{width:100%;padding:.8rem 1rem;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.95rem;outline:none;margin-bottom:1rem;text-align:center;transition:border-color .2s;}
+    .pay-input:focus{border-color:rgba(0,200,83,0.4);}
+    .pay-input::placeholder{color:rgba(255,255,255,0.2);}
+    .stk-btn{width:100%;padding:.9rem;border-radius:50px;background:var(--green);color:#000;font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;border:none;cursor:pointer;box-shadow:0 0 20px rgba(0,200,83,0.25);transition:all .2s;margin-bottom:.8rem;}
+    .stk-btn:hover{background:var(--green-dark);}
+    .stk-btn:disabled{opacity:.5;cursor:not-allowed;}
+    .pay-cancel{background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;text-decoration:underline;}
+    .pay-cancel:hover{color:var(--error);}
+    .pay-status{margin-top:1rem;padding:.8rem 1rem;border-radius:10px;font-size:.85rem;display:none;text-align:left;}
+    .pay-status.pending{background:rgba(255,171,64,0.1);border:1px solid rgba(255,171,64,0.2);color:var(--warn);}
+    .pay-status.success{background:rgba(0,200,83,0.1);border:1px solid rgba(0,200,83,0.2);color:var(--green);}
+    .pay-status.error{background:rgba(255,82,82,0.1);border:1px solid rgba(255,82,82,0.2);color:var(--error);}
+    .pay-status.show{display:block;}
+
+    .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(20px);background:#1a2e1d;border:1px solid rgba(0,200,83,0.3);color:var(--green);padding:.9rem 1.8rem;border-radius:50px;font-size:.9rem;font-weight:600;opacity:0;transition:all .35s;pointer-events:none;white-space:nowrap;z-index:999;}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+    @media(max-width:700px){.sidebar{display:none;}.two-col{grid-template-columns:1fr;}.stats-grid{grid-template-columns:1fr 1fr;}}
+  </style>
+</head>
+<body>
+
+<div class="loading-screen" id="loadingScreen">
+  <div class="spinner"></div>
+  <p style="color:var(--muted);font-size:.9rem;">Loading dashboard…</p>
+</div>
+
+<!-- Survey Questions Modal -->
+<div class="modal-overlay" id="surveyModal">
+  <div class="modal">
+    <div id="surveyContent">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="modalTitle"></div>
+          <div class="modal-meta" id="modalMeta"></div>
+        </div>
+        <button class="close-btn" onclick="closeModal()">✕</button>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span id="progressText">Question 1 of 5</span>
+          <span id="progressPct">0%</span>
+        </div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+      </div>
+      <div id="questionArea"></div>
+      <div class="modal-footer">
+        <button class="btn-prev" id="btnPrev" onclick="prevQuestion()">← Back</button>
+        <button class="btn-next" id="btnNext" onclick="nextQuestion()">Next →</button>
+      </div>
+    </div>
+    <div class="success-screen" id="successScreen" style="display:none;">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">Survey Completed!</div>
+      <div class="success-earn" id="successEarn">+Ksh 0</div>
+      <p class="success-sub">Your earnings have been added to your balance. Complete more surveys to earn more!</p>
+      <button class="done-btn" onclick="closeModal()">Back to Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="payModal">
+  <div class="pay-modal">
+    <div class="pay-icon">📱</div>
+    <div class="pay-title">Unlock This Survey</div>
+    <p class="pay-sub">Pay a small fee via M-Pesa to unlock this premium survey and start earning.</p>
+    <div class="pay-amount" id="payAmount">Ksh 50</div>
+    <p class="pay-earn" id="payEarn">You'll earn Ksh 0 after completing it</p>
+    <input type="tel" class="pay-input" id="payPhone" placeholder="Enter your M-Pesa number e.g. 0712345678"/>
+    <button class="stk-btn" id="stkBtn" onclick="initiateSTKPush()">📲 Send M-Pesa Prompt</button>
+    <button class="pay-cancel" onclick="closePayModal()">Cancel</button>
+    <div class="pay-status" id="payStatus"></div>
+  </div>
+</div>
+
+<nav>
+  <a class="nav-logo" href="index.html">Survey<span>Pay</span></a>
+  <div class="nav-right">
+    <div class="nav-avatar" id="navAvatar">?</div>
+    <span class="nav-name" id="navName">…</span>
+    <button class="logout-btn" onclick="handleLogout()">Sign out</button>
+  </div>
+</nav>
+
+<div class="layout">
+  <aside class="sidebar">
+    <a href="#overview" class="active">🏠 Overview</a>
+    <a href="#surveys">📋 Surveys</a>
+    <a href="#withdraw">💸 Withdraw</a>
+    <a href="#referrals">👥 Referrals</a>
+    <a href="#transactions">📊 History</a>
+  </aside>
+  <main class="main">
+    <div class="welcome-row" id="overview">
+      <div class="welcome-text">
+        <h2 id="welcomeMsg">Welcome back!</h2>
+        <p>Here's your earnings overview.</p>
+      </div>
+      <div class="ref-badge">
+        <span class="ref-label">Your code:</span>
+        <span class="ref-code" id="refCodeDisplay">––</span>
+        <button class="copy-btn" onclick="copyRefCode()">Copy</button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">💰 Balance</div><div class="stat-value green" id="statBalance">Ksh 0</div><div class="stat-sub">Available to withdraw</div></div>
+      <div class="stat-card"><div class="stat-label">📈 Total Earned</div><div class="stat-value" id="statTotal">Ksh 0</div><div class="stat-sub">All time</div></div>
+      <div class="stat-card"><div class="stat-label">📋 Surveys Done</div><div class="stat-value" id="statSurveys">0</div><div class="stat-sub">Completed</div></div>
+      <div class="stat-card"><div class="stat-label">👥 Referrals</div><div class="stat-value" id="statRefs">0</div><div class="stat-sub" id="statRefEarnings">Ksh 0 earned</div></div>
+    </div>
+
+    <div class="two-col">
+      <div id="surveys">
+        <div class="section-title">📋 Available Surveys</div>
+        <div class="survey-list" id="surveyList"><div class="empty-state">Loading…</div></div>
+      </div>
+      <div id="transactions">
+        <div class="section-title">📊 Recent Transactions</div>
+        <div class="txn-list" id="txnList"><div class="empty-state">No transactions yet.</div></div>
+      </div>
+    </div>
+
+    <div id="withdraw">
+      <div class="section-title">💸 Withdraw Earnings</div>
+      <div class="withdraw-card">
+        <p class="balance-hint">Available: <span id="withdrawBalanceHint">Ksh 0</span></p>
+        <input type="number" id="withdrawAmount" placeholder="Amount to withdraw (min. Ksh 500)" min="500"/>
+        <select id="withdrawMethod">
+          <option value="">Select withdrawal method</option>
+          <option value="mpesa">📱 M-Pesa</option>
+          <option value="airtel">💛 Airtel Money</option>
+          <option value="bank">🏦 Bank Transfer</option>
+        </select>
+        <input type="text" id="withdrawPhone" placeholder="M-Pesa / Airtel number or bank details"/>
+        <button class="withdraw-btn" id="withdrawBtn" onclick="handleWithdraw()">Request Withdrawal</button>
+      </div>
+    </div>
+
+    <div id="referrals">
+      <div class="section-title">👥 Refer & Earn</div>
+      <div class="ref-card">
+        <p style="color:var(--muted);font-size:.9rem;line-height:1.6;">Earn <strong style="color:var(--green)">Ksh 200</strong> for every friend who signs up and completes their first survey.</p>
+        <div class="ref-link-row">
+          <input class="ref-link-input" id="refLinkInput" readonly/>
+          <button class="copy-btn" style="padding:.65rem 1.1rem;font-size:.82rem;" onclick="copyRefLink()">Copy</button>
+        </div>
+        <div class="ref-stats">
+          <div><div class="ref-stat-val" id="refCountDisplay">0</div><div class="ref-stat-lbl">Friends Referred</div></div>
+          <div><div class="ref-stat-val"><span>Ksh </span><span id="refEarnedDisplay">0</span></div><div class="ref-stat-lbl">Referral Earnings</div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // PayHero credentials are stored securely in Vercel environment variables
+  // See SETUP.md for instructions on how to add them
+
+  // ════════════════════════════════════════════════
+  //  Survey data — 1st survey is FREE, rest = Ksh 50
+  // ════════════════════════════════════════════════
+  var SURVEYS = [
+    {
+      id:'sv1', title:'Daily Consumer Habits', icon:'🛒', reward:150, mins:5, fee:0, isFree:true,
+      questions:[
+        {q:'How often do you shop for household items?', type:'radio', options:['Daily','Weekly','Bi-weekly','Monthly']},
+        {q:'Which store do you visit most?', type:'radio', options:['Naivas','Carrefour','Quickmart','Local market','Online']},
+        {q:'Average monthly spending on groceries?', type:'radio', options:['Below Ksh 2,000','Ksh 2,000–5,000','Ksh 5,000–10,000','Above Ksh 10,000']},
+        {q:'Do you compare prices before buying?', type:'radio', options:['Always','Sometimes','Rarely','Never']},
+        {q:'What influences your buying decisions the most?', type:'text'}
+      ]
+    },
+    {
+      id:'sv2', title:'Mobile Banking Usage', icon:'📱', reward:200, mins:7, fee:50, isFree:false,
+      questions:[
+        {q:'Which mobile banking service do you use most?', type:'radio', options:['M-Pesa','Airtel Money','T-Kash','Equitel','None']},
+        {q:'How many times per week do you use mobile money?', type:'radio', options:['1–2 times','3–5 times','More than 5','Rarely']},
+        {q:'What do you mainly use it for?', type:'radio', options:['Sending money','Paying bills','Shopping','Saving','Receiving salary']},
+        {q:'Do you trust mobile banking for large transactions?', type:'radio', options:['Yes completely','Somewhat','Not really','No']},
+        {q:'What improvement would you suggest for mobile banking?', type:'text'}
+      ]
+    },
+    {
+      id:'sv3', title:'Food & Nutrition Study', icon:'🥗', reward:100, mins:4, fee:50, isFree:false,
+      questions:[
+        {q:'How would you describe your diet?', type:'radio', options:['Mostly vegetables','Mixed (meat & veg)','Mostly meat','Fast food heavy']},
+        {q:'How many meals do you eat per day?', type:'radio', options:['1 meal','2 meals','3 meals','More than 3']},
+        {q:'Do you read food labels before buying?', type:'radio', options:['Always','Sometimes','Rarely','Never']},
+        {q:'What is your biggest nutritional concern?', type:'radio', options:['Getting enough protein','Reducing sugar','More vegetables','Cost of healthy food']},
+        {q:'Describe your ideal healthy meal:', type:'text'}
+      ]
+    },
+    {
+      id:'sv4', title:'Social Media Patterns', icon:'📲', reward:120, mins:5, fee:50, isFree:false,
+      questions:[
+        {q:'Which social media platform do you use most?', type:'radio', options:['Facebook','Instagram','TikTok','Twitter/X','WhatsApp']},
+        {q:'Hours per day on social media?', type:'radio', options:['Less than 1 hr','1–2 hrs','3–4 hrs','More than 4 hrs']},
+        {q:'What do you mainly use social media for?', type:'radio', options:['Entertainment','News','Business','Connecting with friends','Learning']},
+        {q:'Has social media influenced your purchases?', type:'radio', options:['Yes, frequently','Occasionally','Rarely','Never']},
+        {q:'What content do you enjoy most on social media?', type:'text'}
+      ]
+    },
+    {
+      id:'sv5', title:'Transport & Commuting', icon:'🚌', reward:180, mins:6, fee:50, isFree:false,
+      questions:[
+        {q:'Primary mode of transport?', type:'radio', options:['Matatu/Bus','Boda boda','Private car','Walking','Taxi/Uber']},
+        {q:'How long is your daily commute?', type:'radio', options:['Under 30 mins','30–60 mins','1–2 hours','Over 2 hours']},
+        {q:'Daily transport spending?', type:'radio', options:['Under Ksh 100','Ksh 100–300','Ksh 300–500','Over Ksh 500']},
+        {q:'Satisfied with public transport in your area?', type:'radio', options:['Very satisfied','Somewhat satisfied','Dissatisfied','Very dissatisfied']},
+        {q:'What would most improve public transport in Kenya?', type:'text'}
+      ]
+    },
+    {
+      id:'sv6', title:'Health & Wellness', icon:'💪', reward:250, mins:8, fee:50, isFree:false,
+      questions:[
+        {q:'How often do you exercise?', type:'radio', options:['Daily','3–4 times/week','1–2 times/week','Rarely','Never']},
+        {q:'How would you rate your overall health?', type:'radio', options:['Excellent','Good','Fair','Poor']},
+        {q:'Do you have access to affordable healthcare?', type:'radio', options:['Yes, easily','Somewhat','Difficult','No access']},
+        {q:'Do you have health insurance?', type:'radio', options:['Yes, NHIF','Yes, private','Both','No insurance']},
+        {q:'What is your biggest health challenge right now?', type:'text'}
+      ]
+    }
+  ];
+
+  var currentUser       = null;
+  var userData          = null;
+  var currentSurvey     = null;
+  var currentQIndex     = 0;
+  var answers           = {};
+  var pendingSurveyId   = null;
+  var paymentCheckTimer = null;
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 3500);
+  }
+  function fmt(n){ return Number(n).toLocaleString(); }
+  function getSurveyById(id){ for(var i=0;i<SURVEYS.length;i++){ if(SURVEYS[i].id===id) return SURVEYS[i]; } return null; }
+
+  // ── AUTH ─────────────────────────────────────────────────
+  auth.onAuthStateChanged(function(user) {
+    if (!user) { window.location.href = 'login.html'; return; }
+    currentUser = user;
+    loadDashboard(user);
+  });
+
+  function loadDashboard(user) {
+    db.collection('users').doc(user.uid).get().then(function(snap) {
+      if (!snap.exists) { window.location.href = 'login.html'; return; }
+      userData = snap.data();
+      var initials = userData.fullName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
+      document.getElementById('navAvatar').textContent   = initials;
+      document.getElementById('navName').textContent     = userData.fullName.split(' ')[0];
+      document.getElementById('welcomeMsg').textContent  = 'Welcome back, ' + userData.fullName.split(' ')[0] + '! 👋';
+      document.getElementById('refCodeDisplay').textContent = userData.referralCode;
+      document.getElementById('statBalance').textContent  = 'Ksh ' + fmt(userData.balance);
+      document.getElementById('statTotal').textContent    = 'Ksh ' + fmt(userData.totalEarned);
+      document.getElementById('statSurveys').textContent  = userData.surveysCompleted;
+      document.getElementById('statRefs').textContent     = userData.referralCount;
+      document.getElementById('statRefEarnings').textContent = 'Ksh ' + fmt(userData.totalReferralEarnings) + ' earned';
+      document.getElementById('withdrawBalanceHint').textContent = 'Ksh ' + fmt(userData.balance);
+      document.getElementById('refLinkInput').value = window.location.origin + '/signup.html?ref=' + userData.referralCode;
+      document.getElementById('refCountDisplay').textContent  = userData.referralCount;
+      document.getElementById('refEarnedDisplay').textContent = userData.totalReferralEarnings;
+      loadSurveys(user.uid);
+      loadTransactions(user.uid);
+      document.getElementById('loadingScreen').style.display = 'none';
+    });
+  }
+
+  // ── SURVEY LIST ──────────────────────────────────────────
+  function loadSurveys(uid) {
+    db.collection('users').doc(uid).collection('completedSurveys').get()
+    .then(function(doneSnap) {
+      var done = {};
+      doneSnap.forEach(function(d){ done[d.id] = true; });
+
+      db.collection('users').doc(uid).collection('unlockedSurveys').get()
+      .then(function(unlockedSnap) {
+        var unlocked = {};
+        unlockedSnap.forEach(function(d){ unlocked[d.id] = true; });
+
+        var html = SURVEYS.map(function(s) {
+          var btn = '';
+          if (done[s.id]) {
+            btn = '<span class="done-badge">✓ Done</span>';
+          } else if (s.isFree || unlocked[s.id]) {
+            btn = '<button class="take-btn" onclick="openSurvey(\'' + s.id + '\')">Start Survey</button>';
+          } else {
+            btn = '<button class="pay-btn" onclick="openPayModal(\'' + s.id + '\')">🔒 Unlock – Ksh ' + s.fee + '</button>';
+          }
+          return '<div class="survey-item">' +
+            '<div class="survey-icon">' + s.icon + '</div>' +
+            '<div class="survey-info">' +
+              '<div class="survey-name">' + s.title +
+                (s.isFree ? '<span class="free-tag">FREE</span>' : '<span class="paid-tag">PAID</span>') +
+              '</div>' +
+              '<div class="survey-meta">~' + s.mins + ' mins &nbsp;·&nbsp; Earn Ksh ' + s.reward + '</div>' +
+            '</div>' + btn +
+          '</div>';
+        }).join('');
+        document.getElementById('surveyList').innerHTML = html;
+      });
+    });
+  }
+
+  // ── OPEN & RENDER SURVEY ────────────────────────────────
+  function openSurvey(id) {
+    currentSurvey = getSurveyById(id);
+    if (!currentSurvey) return;
+    currentQIndex = 0; answers = {};
+    document.getElementById('modalTitle').textContent = currentSurvey.title;
+    document.getElementById('modalMeta').textContent  = '~' + currentSurvey.mins + ' mins  ·  Earn Ksh ' + currentSurvey.reward;
+    document.getElementById('surveyContent').style.display = '';
+    document.getElementById('successScreen').style.display = 'none';
+    renderQuestion();
+    document.getElementById('surveyModal').classList.add('open');
+  }
+
+  function renderQuestion() {
+    var q     = currentSurvey.questions[currentQIndex];
+    var total = currentSurvey.questions.length;
+    var pct   = Math.round((currentQIndex / total) * 100);
+
+    document.getElementById('progressText').textContent  = 'Question ' + (currentQIndex+1) + ' of ' + total;
+    document.getElementById('progressPct').textContent   = pct + '%';
+    document.getElementById('progressFill').style.width  = pct + '%';
+    document.getElementById('btnPrev').style.visibility  = currentQIndex === 0 ? 'hidden' : 'visible';
+    document.getElementById('btnNext').textContent       = currentQIndex === total-1 ? 'Submit ✓' : 'Next →';
+
+    var saved = answers[currentQIndex];
+    var html  = '<div class="question-block">' +
+      '<div class="question-num">Question ' + (currentQIndex+1) + ' of ' + total + '</div>' +
+      '<div class="question-text">' + q.q + '</div>';
+
+    if (q.type === 'radio') {
+      html += '<div class="options-list">';
+      q.options.forEach(function(opt) {
+        var sel = saved === opt ? ' selected' : '';
+        var esc = opt.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+        html += '<label class="option-item' + sel + '" onclick="selectOption(this,\'' + esc + '\')">' +
+          '<input type="radio" name="q' + currentQIndex + '" ' + (saved===opt?'checked':'') + ' readonly/>' +
+          '<span class="option-label">' + opt + '</span></label>';
+      });
+      html += '</div>';
+    } else {
+      html += '<textarea class="text-answer" id="textAnswer" placeholder="Type your answer here…">' + (saved||'') + '</textarea>';
+    }
+    html += '</div>';
+    document.getElementById('questionArea').innerHTML = html;
+  }
+
+  function selectOption(el, value) {
+    document.querySelectorAll('.option-item').forEach(function(o){ o.classList.remove('selected'); });
+    el.classList.add('selected');
+    answers[currentQIndex] = value;
+  }
+
+  function nextQuestion() {
+    var q = currentSurvey.questions[currentQIndex];
+    if (q.type === 'text') {
+      var ta = document.getElementById('textAnswer');
+      if (!ta || !ta.value.trim()) { showToast('⚠️ Please write an answer before continuing.'); return; }
+      answers[currentQIndex] = ta.value.trim();
+    }
+    if (q.type === 'radio' && !answers[currentQIndex]) { showToast('⚠️ Please select an answer.'); return; }
+
+    if (currentQIndex < currentSurvey.questions.length - 1) {
+      currentQIndex++;
+      renderQuestion();
+    } else {
+      submitSurvey();
+    }
+  }
+
+  function prevQuestion() {
+    if (currentQIndex > 0) { currentQIndex--; renderQuestion(); }
+  }
+
+  function submitSurvey() {
+    var uid = currentUser.uid; var s = currentSurvey;
+    var btn = document.getElementById('btnNext');
+    btn.disabled = true; btn.textContent = 'Submitting…';
+
+    db.collection('users').doc(uid).collection('completedSurveys').doc(s.id).set({
+      surveyId:s.id, title:s.title, reward:s.reward, answers:answers,
+      completedAt: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(function() {
+      return db.collection('users').doc(uid).update({
+        balance:          firebase.firestore.FieldValue.increment(s.reward),
+        totalEarned:      firebase.firestore.FieldValue.increment(s.reward),
+        surveysCompleted: firebase.firestore.FieldValue.increment(1)
+      });
+    })
+    .then(function() {
+      return db.collection('users').doc(uid).collection('transactions').add({
+        type:'survey_earning', amount:s.reward,
+        description:'Survey completed: ' + s.title,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    })
+    .then(function() {
+      document.getElementById('successEarn').textContent = '+Ksh ' + s.reward;
+      document.getElementById('surveyContent').style.display = 'none';
+      document.getElementById('successScreen').style.display = '';
+      loadDashboard(currentUser);
+    })
+    .catch(function(){ btn.disabled=false; btn.textContent='Submit ✓'; showToast('❌ Error. Please try again.'); });
+  }
+
+  function closeModal() {
+    document.getElementById('surveyModal').classList.remove('open');
+    currentSurvey=null; answers={}; currentQIndex=0;
+    if (currentUser) loadSurveys(currentUser.uid);
+  }
+
+  // ── PAYHERO STK PUSH ────────────────────────────────────
+  function openPayModal(id) {
+    pendingSurveyId = id;
+    var s = getSurveyById(id);
+    document.getElementById('payAmount').textContent = 'Ksh ' + s.fee;
+    document.getElementById('payEarn').textContent   = 'You\'ll earn Ksh ' + s.reward + ' after completing it';
+    document.getElementById('payPhone').value        = userData.phone || '';
+    document.getElementById('payStatus').className   = 'pay-status';
+    document.getElementById('payStatus').textContent = '';
+    document.getElementById('stkBtn').disabled       = false;
+    document.getElementById('stkBtn').textContent    = '📲 Send M-Pesa Prompt';
+    document.getElementById('payModal').classList.add('open');
+  }
+
+  function closePayModal() {
+    document.getElementById('payModal').classList.remove('open');
+    if (paymentCheckTimer) { clearInterval(paymentCheckTimer); paymentCheckTimer=null; }
+    pendingSurveyId = null;
+  }
+
+  function initiateSTKPush() {
+    var phone = document.getElementById('payPhone').value.trim().replace(/\s+/g,'');
+    var s     = getSurveyById(pendingSurveyId);
+    if (!phone || phone.length < 9) { showToast('⚠️ Enter a valid M-Pesa number'); return; }
+
+    // Normalise to 254XXXXXXXXX
+    if (phone.startsWith('0'))  phone = '254' + phone.substring(1);
+    if (phone.startsWith('+'))  phone = phone.substring(1);
+
+    var btn = document.getElementById('stkBtn');
+    btn.disabled = true; btn.textContent = 'Sending prompt…';
+    setPayStatus('pending', '⏳ Sending M-Pesa prompt to your phone…');
+
+    fetch('/api/stkPush', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount:             s.fee,
+        phone_number:       phone,
+        external_reference: 'SPY-' + pendingSurveyId + '-' + currentUser.uid.substring(0,8)
+      })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      var ref = data.reference || data.CheckoutRequestID || data.request_reference || '';
+      if (data.success || data.status === 'queued' || ref) {
+        setPayStatus('pending', '📲 Check your phone and enter your M-Pesa PIN to complete payment. Do not close this window.');
+        btn.textContent = '⏳ Waiting for payment…';
+        var checks = 0;
+        paymentCheckTimer = setInterval(function() {
+          checks++;
+          if (checks > 24) {
+            clearInterval(paymentCheckTimer);
+            setPayStatus('error', '⏱️ Timed out. Please try again.');
+            btn.disabled = false; btn.textContent = '📲 Send M-Pesa Prompt';
+            return;
+          }
+          pollPaymentStatus(ref, s);
+        }, 5000);
+      } else {
+        setPayStatus('error', '❌ ' + (data.message || data.error || 'Failed to send prompt. Please try again.'));
+        btn.disabled = false; btn.textContent = '📲 Send M-Pesa Prompt';
+      }
+    })
+    .catch(function() {
+      setPayStatus('error', '❌ Network error. Check your internet and try again.');
+      btn.disabled = false; btn.textContent = '📲 Send M-Pesa Prompt';
+    });
+  }
+
+  function pollPaymentStatus(ref, survey) {
+    fetch('/api/paymentCheck?reference=' + encodeURIComponent(ref))
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      var st = (data.status || data.payment_status || '').toLowerCase();
+      if (st === 'success' || st === 'completed' || st === 'paid') {
+        clearInterval(paymentCheckTimer); paymentCheckTimer = null;
+        // Unlock survey in Firestore
+        db.collection('users').doc(currentUser.uid).collection('unlockedSurveys').doc(survey.id).set({
+          surveyId: survey.id, amountPaid: survey.fee,
+          unlockedAt: firebase.firestore.FieldValue.serverTimestamp()
+        })
+        .then(function() {
+          return db.collection('users').doc(currentUser.uid).collection('transactions').add({
+            type:'survey_unlock', amount: survey.fee,
+            description: 'Unlocked survey: ' + survey.title,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        })
+        .then(function() {
+          setPayStatus('success', '✅ Payment confirmed! Opening survey…');
+          setTimeout(function(){ closePayModal(); openSurvey(survey.id); }, 1500);
+        });
+      } else if (st === 'failed' || st === 'cancelled' || st === 'canceled') {
+        clearInterval(paymentCheckTimer); paymentCheckTimer = null;
+        setPayStatus('error', '❌ Payment was cancelled or failed. Please try again.');
+        document.getElementById('stkBtn').disabled = false;
+        document.getElementById('stkBtn').textContent = '📲 Send M-Pesa Prompt';
+      }
+    })
+    .catch(function(){ /* keep polling */ });
+  }
+
+  function setPayStatus(type, msg) {
+    var el = document.getElementById('payStatus');
+    el.className = 'pay-status ' + type + ' show';
+    el.textContent = msg;
+  }
+
+  // ── TRANSACTIONS ─────────────────────────────────────────
+  function loadTransactions(uid) {
+    db.collection('users').doc(uid).collection('transactions')
+      .orderBy('createdAt','desc').limit(10).get()
+      .then(function(snap) {
+        if (snap.empty) { document.getElementById('txnList').innerHTML='<div class="empty-state">No transactions yet.</div>'; return; }
+        var html = '';
+        snap.forEach(function(d) {
+          var t = d.data();
+          var isCredit = t.type==='survey_earning'||t.type==='welcome_bonus'||t.type==='referral_bonus';
+          var date = t.createdAt&&t.createdAt.toDate ? t.createdAt.toDate().toLocaleDateString('en-KE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : 'Just now';
+          html += '<div class="txn-item"><div class="txn-dot '+(isCredit?'credit':'debit')+'"></div>' +
+            '<div class="txn-info"><div class="txn-desc">'+t.description+'</div><div class="txn-date">'+date+'</div></div>' +
+            '<div class="txn-amount '+(isCredit?'credit':'debit')+'">'+(isCredit?'+':'-')+'Ksh '+fmt(t.amount)+'</div></div>';
+        });
+        document.getElementById('txnList').innerHTML = html;
+      });
+  }
+
+  // ── WITHDRAW ─────────────────────────────────────────────
+  function handleWithdraw() {
+    var amount = parseInt(document.getElementById('withdrawAmount').value);
+    var method = document.getElementById('withdrawMethod').value;
+    var phone  = document.getElementById('withdrawPhone').value.trim();
+    if (!amount||amount<500) { showToast('⚠️ Minimum withdrawal is Ksh 500'); return; }
+    if (!method)             { showToast('⚠️ Select a withdrawal method'); return; }
+    if (!phone)              { showToast('⚠️ Enter your payment details'); return; }
+    if (amount>userData.balance) { showToast('⚠️ Insufficient balance. You have Ksh '+fmt(userData.balance)); return; }
+    var btn=document.getElementById('withdrawBtn'); btn.disabled=true; btn.textContent='Processing…';
+    var uid=currentUser.uid;
+    db.collection('users').doc(uid).update({
+      balance:firebase.firestore.FieldValue.increment(-amount),
+      totalWithdrawn:firebase.firestore.FieldValue.increment(amount)
+    })
+    .then(function(){
+      return db.collection('users').doc(uid).collection('transactions').add({
+        type:'withdrawal',amount:amount,
+        description:'Withdrawal via '+method.toUpperCase()+' to '+phone,
+        status:'pending',createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    })
+    .then(function(){
+      return db.collection('withdrawals').add({
+        uid:uid,fullName:userData.fullName,email:userData.email,phone:userData.phone,
+        amount:amount,method:method,paymentDetails:phone,status:'pending',
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    })
+    .then(function(){
+      showToast('✅ Withdrawal of Ksh '+fmt(amount)+' submitted!');
+      document.getElementById('withdrawAmount').value='';
+      document.getElementById('withdrawPhone').value='';
+      document.getElementById('withdrawMethod').value='';
+      loadDashboard(currentUser);
+    })
+    .catch(function(){ showToast('❌ Withdrawal failed. Please try again.'); })
+    .finally(function(){ btn.disabled=false; btn.textContent='Request Withdrawal'; });
+  }
+
+  function copyRefCode(){ navigator.clipboard.writeText(userData.referralCode); showToast('✅ Code copied!'); }
+  function copyRefLink(){ navigator.clipboard.writeText(document.getElementById('refLinkInput').value); showToast('✅ Link copied!'); }
+  function handleLogout(){ auth.signOut().then(function(){ window.location.href='login.html'; }); }
+
+  document.getElementById('surveyModal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+  document.getElementById('payModal').addEventListener('click',function(e){if(e.target===this)closePayModal();});
+</script>
+</body>
+</html>
