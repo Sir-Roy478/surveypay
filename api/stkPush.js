@@ -1,20 +1,26 @@
-// /api/stkPush.js
-// This runs on Vercel's server - no CORS issues
+// api/stkPush.js
+const https = require('https');
 
-export default async function handler(req, res) {
-  // Allow requests from your site
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
-  if (req.method !== 'POST')    { res.status(405).json({ error: 'Method not allowed' }); return; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
   var PAYHERO_USERNAME   = process.env.PAYHERO_USERNAME;
   var PAYHERO_PASSWORD   = process.env.PAYHERO_PASSWORD;
   var PAYHERO_CHANNEL_ID = process.env.PAYHERO_CHANNEL_ID;
 
-  var { amount, phone_number, external_reference } = req.body;
+  if (!PAYHERO_USERNAME || !PAYHERO_PASSWORD || !PAYHERO_CHANNEL_ID) {
+    res.status(500).json({ error: 'PayHero credentials not set in Vercel environment variables' });
+    return;
+  }
+
+  var amount             = req.body.amount;
+  var phone_number       = req.body.phone_number;
+  var external_reference = req.body.external_reference || ('SPY-' + Date.now());
 
   if (!amount || !phone_number) {
     res.status(400).json({ error: 'Missing amount or phone_number' });
@@ -23,27 +29,42 @@ export default async function handler(req, res) {
 
   var credentials = Buffer.from(PAYHERO_USERNAME + ':' + PAYHERO_PASSWORD).toString('base64');
 
-  try {
-    var response = await fetch('https://backend.payhero.co.ke/api/v2/payments', {
-      method: 'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': 'Basic ' + credentials
-      },
-      body: JSON.stringify({
-        amount:             amount,
-        phone_number:       phone_number,
-        channel_id:         Number(PAYHERO_CHANNEL_ID),
-        provider:           'm-pesa',
-        external_reference: external_reference || 'SPY-' + Date.now(),
-        callback_url:       process.env.CALLBACK_URL || 'https://your-site.vercel.app/api/payment-callback'
-      })
+  var payload = JSON.stringify({
+    amount:             amount,
+    phone_number:       phone_number,
+    channel_id:         Number(PAYHERO_CHANNEL_ID),
+    provider:           'm-pesa',
+    external_reference: external_reference,
+    callback_url:       'https://' + req.headers.host + '/api/paymentCheck'
+  });
+
+  var options = {
+    hostname: 'backend.payhero.co.ke',
+    path:     '/api/v2/payments',
+    method:   'POST',
+    headers: {
+      'Content-Type':   'application/json',
+      'Authorization':  'Basic ' + credentials,
+      'Content-Length': Buffer.byteLength(payload)
+    }
+  };
+
+  var responseData = '';
+  var payheroReq = https.request(options, function(payheroRes) {
+    payheroRes.on('data', function(chunk) { responseData += chunk; });
+    payheroRes.on('end', function() {
+      try {
+        res.status(200).json(JSON.parse(responseData));
+      } catch(e) {
+        res.status(200).json({ raw: responseData });
+      }
     });
+  });
 
-    var data = await response.json();
-    res.status(200).json(data);
+  payheroReq.on('error', function(err) {
+    res.status(500).json({ error: 'Request to PayHero failed', details: err.message });
+  });
 
-  } catch (err) {
-    res.status(500).json({ error: 'PayHero request failed', details: err.message });
-  }
-}
+  payheroReq.write(payload);
+  payheroReq.end();
+};
