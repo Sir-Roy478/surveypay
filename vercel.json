@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/stkPush.js": {
+      "runtime": "nodejs18.x"
+    },
+    "api/paymentCheck.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
+}
