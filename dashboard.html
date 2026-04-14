@@ -285,7 +285,7 @@
       <div class="section-title">💸 Withdraw Earnings</div>
       <div class="withdraw-card">
         <p class="balance-hint">Available: <span id="withdrawBalanceHint">Ksh 0</span></p>
-        <input type="number" id="withdrawAmount" placeholder="Amount to withdraw (min. Ksh 500)" min="500"/>
+        <input type="number" id="withdrawAmount" placeholder="Amount to withdraw (min. Ksh 3,000)" min="3000"/>
         <select id="withdrawMethod">
           <option value="">Select withdrawal method</option>
           <option value="mpesa">📱 M-Pesa</option>
@@ -325,7 +325,7 @@
   // ════════════════════════════════════════════════
   var SURVEYS = [
     {
-      id:'sv1', title:'Daily Consumer Habits', icon:'🛒', reward:150, mins:5, fee:0, isFree:true,
+      id:'sv1', title:'Daily Consumer Habits', icon:'🛒', reward:200, mins:5, fee:0, isFree:true,
       questions:[
         {q:'How often do you shop for household items?', type:'radio', options:['Daily','Weekly','Bi-weekly','Monthly']},
         {q:'Which store do you visit most?', type:'radio', options:['Naivas','Carrefour','Quickmart','Local market','Online']},
@@ -335,7 +335,7 @@
       ]
     },
     {
-      id:'sv2', title:'Mobile Banking Usage', icon:'📱', reward:200, mins:7, fee:50, isFree:false,
+      id:'sv2', title:'Mobile Banking Usage', icon:'📱', reward:2500, mins:7, fee:199, isFree:false,
       questions:[
         {q:'Which mobile banking service do you use most?', type:'radio', options:['M-Pesa','Airtel Money','T-Kash','Equitel','None']},
         {q:'How many times per week do you use mobile money?', type:'radio', options:['1–2 times','3–5 times','More than 5','Rarely']},
@@ -345,7 +345,7 @@
       ]
     },
     {
-      id:'sv3', title:'Food & Nutrition Study', icon:'🥗', reward:100, mins:4, fee:50, isFree:false,
+      id:'sv3', title:'Food & Nutrition Study', icon:'🥗', reward:3560, mins:4, fee:290, isFree:false,
       questions:[
         {q:'How would you describe your diet?', type:'radio', options:['Mostly vegetables','Mixed (meat & veg)','Mostly meat','Fast food heavy']},
         {q:'How many meals do you eat per day?', type:'radio', options:['1 meal','2 meals','3 meals','More than 3']},
@@ -355,7 +355,7 @@
       ]
     },
     {
-      id:'sv4', title:'Social Media Patterns', icon:'📲', reward:120, mins:5, fee:50, isFree:false,
+      id:'sv4', title:'Social Media Patterns', icon:'📲', reward:4430, mins:5, fee:389, isFree:false,
       questions:[
         {q:'Which social media platform do you use most?', type:'radio', options:['Facebook','Instagram','TikTok','Twitter/X','WhatsApp']},
         {q:'Hours per day on social media?', type:'radio', options:['Less than 1 hr','1–2 hrs','3–4 hrs','More than 4 hrs']},
@@ -365,7 +365,7 @@
       ]
     },
     {
-      id:'sv5', title:'Transport & Commuting', icon:'🚌', reward:180, mins:6, fee:50, isFree:false,
+      id:'sv5', title:'Transport & Commuting', icon:'🚌', reward:4970, mins:6, fee:450, isFree:false,
       questions:[
         {q:'Primary mode of transport?', type:'radio', options:['Matatu/Bus','Boda boda','Private car','Walking','Taxi/Uber']},
         {q:'How long is your daily commute?', type:'radio', options:['Under 30 mins','30–60 mins','1–2 hours','Over 2 hours']},
@@ -375,7 +375,7 @@
       ]
     },
     {
-      id:'sv6', title:'Health & Wellness', icon:'💪', reward:250, mins:8, fee:50, isFree:false,
+      id:'sv6', title:'Health & Wellness', icon:'💪', reward:5780, mins:8, fee:570, isFree:false,
       questions:[
         {q:'How often do you exercise?', type:'radio', options:['Daily','3–4 times/week','1–2 times/week','Rarely','Never']},
         {q:'How would you rate your overall health?', type:'radio', options:['Excellent','Good','Fair','Poor']},
@@ -713,7 +713,7 @@
     var amount = parseInt(document.getElementById('withdrawAmount').value);
     var method = document.getElementById('withdrawMethod').value;
     var phone  = document.getElementById('withdrawPhone').value.trim();
-    if (!amount||amount<500) { showToast('⚠️ Minimum withdrawal is Ksh 500'); return; }
+    if (!amount||amount<3000) { showToast('⚠️ Minimum withdrawal is Ksh 3,000'); return; }
     if (!method)             { showToast('⚠️ Select a withdrawal method'); return; }
     if (!phone)              { showToast('⚠️ Enter your payment details'); return; }
     if (amount>userData.balance) { showToast('⚠️ Insufficient balance. You have Ksh '+fmt(userData.balance)); return; }
