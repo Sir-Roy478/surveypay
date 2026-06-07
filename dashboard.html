@@ -269,7 +269,7 @@
 <div class="main">
 
   <!-- WELCOME -->
-  <div class="welcome-row">
+  <div class="welcome-row" id="welcome-row">
     <h2 id="welcomeMsg">Welcome back!</h2>
     <p>Here's your earnings overview.</p>
     <div class="ref-badge">
@@ -359,11 +359,11 @@
 <!-- BOTTOM NAV (mobile only) -->
 <div class="bottom-nav">
   <div class="bottom-nav-items">
-    <button class="bnav-item active" onclick="scrollTo('overview')"><span class="bnav-icon">🏠</span>Home</button>
-    <button class="bnav-item" onclick="scrollTo('surveys')"><span class="bnav-icon">📋</span>Surveys</button>
-    <button class="bnav-item" onclick="scrollTo('withdraw')"><span class="bnav-icon">💸</span>Withdraw</button>
-    <button class="bnav-item" onclick="scrollTo('referrals')"><span class="bnav-icon">👥</span>Refer</button>
-    <button class="bnav-item" onclick="scrollTo('transactions')"><span class="bnav-icon">📊</span>History</button>
+    <button class="bnav-item active" id='bnav-home' onclick="goToSection('welcome-row')"><span class="bnav-icon">🏠</span>Home</button>
+    <button class="bnav-item" id='bnav-surveys' onclick="goToSection('surveys')"><span class="bnav-icon">📋</span>Surveys</button>
+    <button class="bnav-item" id='bnav-withdraw' onclick="goToSection('withdraw')"><span class="bnav-icon">💸</span>Withdraw</button>
+    <button class="bnav-item" id='bnav-refer' onclick="goToSection('referrals')"><span class="bnav-icon">👥</span>Refer</button>
+    <button class="bnav-item" id='bnav-history' onclick="goToSection('transactions')"><span class="bnav-icon">📊</span>History</button>
   </div>
 </div>
 
@@ -439,7 +439,14 @@
   function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},3500);}
   function fmt(n){return Number(n).toLocaleString();}
   function getSurveyById(id){for(var i=0;i<SURVEYS.length;i++){if(SURVEYS[i].id===id)return SURVEYS[i];}return null;}
-  function scrollTo(id){var el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth'});}
+  function goToSection(id){
+    var el=document.getElementById(id);
+    if(!el)return;
+    var navH=64;
+    var top=el.getBoundingClientRect().top+window.pageYOffset-navH;
+    window.scrollTo({top:top,behavior:'smooth'});
+    document.querySelectorAll('.bnav-item').forEach(function(b){b.classList.remove('active');});
+  }
 
   auth.onAuthStateChanged(function(user){
     if(!user){window.location.href='login.html';return;}
