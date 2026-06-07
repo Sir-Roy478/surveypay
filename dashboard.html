@@ -51,11 +51,11 @@
     .copy-btn{background:rgba(0,119,255,0.1);border:none;color:var(--primary);padding:.3rem .7rem;border-radius:6px;font-size:.75rem;cursor:pointer;font-weight:600;}
     .copy-btn:hover{background:rgba(160,80,255,0.25);}
 
-    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-bottom:2rem;}
+    .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-bottom:2rem;}
     .stat-card{background:#231545;border:1px solid var(--border);border-radius:14px;padding:1.3rem 1.2rem;transition:border-color .2s;}
     .stat-card:hover{border-color:rgba(160,80,255,0.25);}
     .stat-label{font-size:.75rem;font-weight:600;color:#c4a8ff;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;}
-    .stat-value{color:#ffffff;font-family:'Sora',sans-serif;font-size:1.8rem;font-weight:800;color:#ffffff;}
+    .stat-value{font-family:'Sora',sans-serif;font-size:1.8rem;font-weight:800;color:#ffffff;} .stat-value.green{color:var(--primary);}
     .stat-value.green{color:var(--primary);}
     .stat-sub{font-size:.75rem;color:#c4a8ff;margin-top:.3rem;}
 
@@ -174,7 +174,7 @@
     .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(20px);background:#1e1035;border:1px solid rgba(160,80,255,0.38);color:var(--primary);padding:.9rem 1.8rem;border-radius:50px;font-size:.9rem;font-weight:600;opacity:0;transition:all .35s;pointer-events:none;white-space:nowrap;z-index:999;}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-    @media(max-width:700px){.sidebar{display:none;}.two-col{grid-template-columns:1fr;}.stats-grid{grid-template-columns:1fr 1fr;}}
+    @media(max-width:900px){.sidebar{display:none;}.two-col{grid-template-columns:1fr;}} @media(max-width:600px){.stats-grid{grid-template-columns:1fr 1fr;}.main{padding:1.2rem 4%;}.stat-card{padding:1rem;}.stat-value{font-size:1.5rem;}.welcome-text h2{font-size:1.2rem;}.ref-badge{flex-wrap:wrap;}.survey-item{flex-wrap:wrap;gap:.6rem;}.nav-name{display:none;}.modal{padding:1.2rem;}.pay-modal{padding:1.4rem;}.withdraw-card{padding:1rem;}.ref-card{padding:1rem;}} @media(max-width:380px){.stats-grid{grid-template-columns:1fr;}}
   </style>
 </head>
 <body>
@@ -335,7 +335,7 @@
       ]
     },
     {
-      id:'sv2', title:'Mobile Banking Usage', icon:'📱', reward:2600, mins:7, fee:195, isFree:false,
+      id:'sv2', title:'Mobile Banking Usage', icon:'📱', reward:2500, mins:7, fee:199, isFree:false,
       questions:[
         {q:'Which mobile banking service do you use most?', type:'radio', options:['M-Pesa','Airtel Money','T-Kash','Equitel','None']},
         {q:'How many times per week do you use mobile money?', type:'radio', options:['1–2 times','3–5 times','More than 5','Rarely']},
@@ -345,7 +345,7 @@
       ]
     },
     {
-      id:'sv3', title:'Food & Nutrition Study', icon:'🥗', reward:5560, mins:4, fee:260, isFree:false,
+      id:'sv3', title:'Food & Nutrition Study', icon:'🥗', reward:3560, mins:4, fee:290, isFree:false,
       questions:[
         {q:'How would you describe your diet?', type:'radio', options:['Mostly vegetables','Mixed (meat & veg)','Mostly meat','Fast food heavy']},
         {q:'How many meals do you eat per day?', type:'radio', options:['1 meal','2 meals','3 meals','More than 3']},
@@ -355,7 +355,7 @@
       ]
     },
     {
-      id:'sv4', title:'Social Media Patterns', icon:'📲', reward:7430, mins:5, fee:340, isFree:false,
+      id:'sv4', title:'Social Media Patterns', icon:'📲', reward:4430, mins:5, fee:389, isFree:false,
       questions:[
         {q:'Which social media platform do you use most?', type:'radio', options:['Facebook','Instagram','TikTok','Twitter/X','WhatsApp']},
         {q:'Hours per day on social media?', type:'radio', options:['Less than 1 hr','1–2 hrs','3–4 hrs','More than 4 hrs']},
@@ -365,7 +365,7 @@
       ]
     },
     {
-      id:'sv5', title:'Transport & Commuting', icon:'🚌', reward:9430, mins:6, fee:420, isFree:false,
+      id:'sv5', title:'Transport & Commuting', icon:'🚌', reward:4970, mins:6, fee:450, isFree:false,
       questions:[
         {q:'Primary mode of transport?', type:'radio', options:['Matatu/Bus','Boda boda','Private car','Walking','Taxi/Uber']},
         {q:'How long is your daily commute?', type:'radio', options:['Under 30 mins','30–60 mins','1–2 hours','Over 2 hours']},
@@ -375,7 +375,7 @@
       ]
     },
     {
-      id:'sv6', title:'Health & Wellness', icon:'💪', reward:13300, mins:8, fee:510, isFree:false,
+      id:'sv6', title:'Health & Wellness', icon:'💪', reward:5780, mins:8, fee:570, isFree:false,
       questions:[
         {q:'How often do you exercise?', type:'radio', options:['Daily','3–4 times/week','1–2 times/week','Rarely','Never']},
         {q:'How would you rate your overall health?', type:'radio', options:['Excellent','Good','Fair','Poor']},
